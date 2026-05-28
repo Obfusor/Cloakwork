@@ -1,6 +1,6 @@
 # Cloakwork
 
-Cloakwork is a header-only C++20 obfuscation library for Windows. It provides comprehensive protections against static and dynamic analysis -- string encryption, value obfuscation, control flow flattening, anti-debug, anti-VM, import hiding, direct syscalls, and more. No dependencies, no build step: drop in a single header and go. Supports both user mode and kernel mode drivers.
+Cloakwork is a header-only C++20 obfuscation library for Windows. It provides comprehensive protections against static and dynamic analysis -- string encryption, value obfuscation, control flow flattening, anti-debug, anti-VM, import hiding, direct syscalls, and more. No external dependencies or build step: drop in a single header and go. On MSVC, the header auto-links the Windows system libraries it uses. Supports both user mode and kernel mode drivers.
 
 > Inspired by [obfusheader.h](https://github.com/ac3ss0r/obfusheader.h), Zapcrash's nimrodhide.h, and qengine.
 
@@ -83,9 +83,12 @@ Define feature macros **before** including the header. All features are enabled 
 | `CW_ENABLE_INTEGRITY_CHECKS` | Code integrity verification | `1` |
 | `CW_ANTI_DEBUG_RESPONSE` | Debugger response: 0=ignore, 1=crash, 2=fake data | `1` |
 
-If you disable `CW_ENABLE_ALL` and selectively re-enable features, note that
-`CW_ENABLE_ANTI_DEBUG` depends on `CW_ENABLE_COMPILE_TIME_RANDOM`. Cloakwork
-now emits a compile-time error when that dependency is missing.
+If you disable `CW_ENABLE_ALL` and selectively re-enable features, Cloakwork
+now emits compile-time errors for unsupported combinations. String encryption,
+value obfuscation, anti-debug, data hiding, control flow, metamorphic code,
+function obfuscation, and import hiding depend on `CW_ENABLE_COMPILE_TIME_RANDOM`.
+Function obfuscation and syscalls also depend on import hiding because they scan
+loaded PE images for gadgets and exports.
 
 ---
 
@@ -108,6 +111,7 @@ now emits a compile-time error when that dependency is missing.
 | `CW_HASH(s)` | Compile-time FNV-1a hash (case-sensitive) |
 | `CW_HASH_CI(s)` | Compile-time FNV-1a hash (case-insensitive) |
 | `CW_HASH_WIDE(s)` | Compile-time wide string hash |
+| `CW_HASH_WIDE_CI(s)` | Compile-time wide module-name hash for `CW_IMPORT_WIDE` |
 | `CW_HASH_RT(str)` | Runtime FNV-1a hash (case-sensitive) |
 | `CW_HASH_RT_CI(str)` | Runtime FNV-1a hash (case-insensitive) |
 
@@ -196,7 +200,7 @@ now emits a compile-time error when that dependency is missing.
 | `CW_CHECK_DEBUG()` | Returns bool, comprehensive multi-layer detection |
 | `CW_HIDE_THREAD()` | Hide thread from debugger (ThreadHideFromDebugger) |
 
-For granular checks, use the `cloakwork::anti_debug` namespace directly: `is_debugger_present()`, `has_hardware_breakpoints()`, `comprehensive_check()`, `timing_check()`, and the `enhanced` sub-namespace for debug port checks, parent process analysis, anti-anti-debug plugin detection, kernel debugger detection, and registry artifact scanning.
+For granular checks, use the `cloakwork::anti_debug` namespace directly: `is_debugger_present()`, `has_hardware_breakpoints()`, `comprehensive_check()`, and `timing_check()`. The `advanced` sub-namespace contains hiding-tool, parent-process, kernel-debugger, timing, memory-breakpoint, and registry-artifact checks. The `enhanced` sub-namespace contains debug-port probing and thread hiding.
 
 ### Anti-VM / Sandbox
 
@@ -205,7 +209,7 @@ For granular checks, use the `cloakwork::anti_debug` namespace directly: `is_deb
 | `CW_ANTI_VM()` | Crashes if VM or sandbox detected |
 | `CW_CHECK_VM()` | Returns bool |
 
-For individual checks, use `cloakwork::anti_debug::anti_vm`: hypervisor detection (CPUID), VM vendor string matching (VMware, VirtualBox, Hyper-V, KVM, Xen, Parallels, QEMU), low resource detection, sandbox DLL detection, VM registry keys, VM MAC prefixes, and sandbox username/computer name detection.
+For individual checks, use `cloakwork::anti_debug::anti_vm`: hypervisor detection (CPUID), VM vendor string matching (VMware, VirtualBox, KVM, Xen, Parallels, QEMU), low resource detection, sandbox DLL detection, VM registry keys, VM MAC prefixes, and sandbox username/computer name detection. Hyper-V/VBS is treated as corroborating evidence rather than a standalone VM verdict to reduce false positives on modern bare-metal Windows.
 
 ### Integrity
 
@@ -248,7 +252,7 @@ For individual checks, use `cloakwork::anti_debug::anti_vm`: hypervisor detectio
 
 ## Kernel Mode
 
-I'd recommend you use my other library [Kernelcloak](https://github.com/ck0i/Kernelcloak) for kernel work, it is much more in depth and Cloakwork doesn't really suit kernel work as much as other libaries do. However, if you choose to still use Cloakwork, here you go:
+I'd recommend you use my other library [Kernelcloak](https://github.com/ck0i/Kernelcloak) for kernel work, it is much more in depth and Cloakwork doesn't really suit kernel work as much as other libraries do. However, if you choose to still use Cloakwork, here you go:
 
 Kernel mode is auto-detected when WDK headers are present (`_KERNEL_MODE`, `NTDDI_VERSION`, `_NTDDK_`, `_WDMDDK_`), or forced with `#define CW_KERNEL_MODE 1`.
 
